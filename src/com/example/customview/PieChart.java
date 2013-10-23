@@ -48,6 +48,7 @@ public class PieChart extends ViewGroup {
 	private Paint mTextPaint;
 	private Paint mShadowPaint;
 
+	// 对应的字段
 	private boolean mShowText = false;
 
 	private float mTextX = 0.0f;
@@ -146,6 +147,10 @@ public class PieChart extends ViewGroup {
 		//
 		// This call uses R.styleable.PieChart, which is an array of
 		// the custom attributes that were declared in attrs.xml.
+
+		/**
+		 * 获取自定义属性
+		 * */
 		TypedArray a = context.getTheme().obtainStyledAttributes(attrs,
 				R.styleable.PieChart, 0, 0);
 
@@ -172,6 +177,7 @@ public class PieChart extends ViewGroup {
 					R.styleable.PieChart_autoCenterPointerInSlice, false);
 		} finally {
 			// release the TypedArray so that it can be reused.
+			// TODO 在什么地方被重用了呢??
 			a.recycle();
 		}
 
@@ -365,6 +371,7 @@ public class PieChart extends ViewGroup {
 	 *            The current pie rotation, in degrees.
 	 */
 	public void setPieRotation(int rotation) {
+		// 好像还是挺随机的..
 		rotation = (rotation % 360 + 360) % 360;
 		mPieRotation = rotation;
 		mPieView.rotateTo(rotation);
@@ -428,6 +435,9 @@ public class PieChart extends ViewGroup {
 	 */
 	public void setOnCurrentItemChangedListener(
 			OnCurrentItemChangedListener listener) {
+		/**
+		 * 目前该方法没被使用
+		 * */
 		mCurrentItemChangedListener = listener;
 	}
 
@@ -475,13 +485,13 @@ public class PieChart extends ViewGroup {
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
 		// Let the GestureDetector interpret this event
+		// 直接回调onTouchEvent方法
 		boolean result = mDetector.onTouchEvent(event);
 
 		// If the GestureDetector doesn't want this event, do some custom
-		// processing.
-		// This code just tries to detect when the user is done scrolling by
-		// looking
-		// for ACTION_UP events.
+		// processing. This code just tries to detect when the user is done
+		// scrolling by looking for ACTION_UP events.
+		// GestureDetector并没有消费掉这个事件
 		if (!result) {
 			if (event.getAction() == MotionEvent.ACTION_UP) {
 				// User is done scrolling, it's now safe to do things like
@@ -543,6 +553,11 @@ public class PieChart extends ViewGroup {
 
 	@Override
 	protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+
+		/**
+		 * 计算长度和宽度
+		 * */
+
 		// Try for a width based on our minimum
 		int minw = getPaddingLeft() + getPaddingRight()
 				+ getSuggestedMinimumWidth();
@@ -562,6 +577,10 @@ public class PieChart extends ViewGroup {
 	@Override
 	protected void onSizeChanged(int w, int h, int oldw, int oldh) {
 		super.onSizeChanged(w, h, oldw, oldh);
+
+		/**
+		 * addView的时候会被调用，设定子视图的布局坐标
+		 * */
 
 		//
 		// Set dimensions for text, pie chart, etc
@@ -618,6 +637,7 @@ public class PieChart extends ViewGroup {
 		// Lay out the child view that actually draws the pie.
 		mPieView.layout((int) mPieBounds.left, (int) mPieBounds.top,
 				(int) mPieBounds.right, (int) mPieBounds.bottom);
+		// 设定PieView的轴心点
 		mPieView.setPivot(mPieBounds.width() / 2, mPieBounds.height() / 2);
 
 		mPointerView.layout(0, 0, w, h);
@@ -629,7 +649,14 @@ public class PieChart extends ViewGroup {
 	 * field accordingly.
 	 */
 	private void calcCurrentItem() {
+
+		/**
+		 * 计算出当前是哪个Item
+		 * */
+
+		// 当前指向的角度
 		int pointerAngle = (mCurrentItemAngle + 360 + mPieRotation) % 360;
+		// 寻找符合范围的Item
 		for (int i = 0; i < mData.size(); ++i) {
 			Item it = mData.get(i);
 			if (it.mStartAngle <= pointerAngle && pointerAngle <= it.mEndAngle) {
@@ -685,33 +712,40 @@ public class PieChart extends ViewGroup {
 		mTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 		mTextPaint.setColor(mTextColor);
 		if (mTextHeight == 0) {
+			// 未在Custom中设置属性，则根据字体大小决定高度
 			mTextHeight = mTextPaint.getTextSize();
 		} else {
 			mTextPaint.setTextSize(mTextHeight);
 		}
 
 		// Set up the paint for the pie slices
+		// 设置饼图画笔
 		mPiePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 		mPiePaint.setStyle(Paint.Style.FILL);
 		mPiePaint.setTextSize(mTextHeight);
 
 		// Set up the paint for the shadow
+		// 设置阴影画笔
 		mShadowPaint = new Paint(0);
 		mShadowPaint.setColor(0xff101010);
+		// 设置模糊效果
 		mShadowPaint.setMaskFilter(new BlurMaskFilter(8,
 				BlurMaskFilter.Blur.NORMAL));
 
 		// Add a child view to draw the pie. Putting this in a child view
 		// makes it possible to draw it on a separate hardware layer that
-		// rotates
-		// independently
+		// rotates independently
+		// 添加子View用于绘制饼图，此处需硬件加速，尽可能在旋转时绘制于独立硬件层
 		mPieView = new PieView(getContext());
+		// 添加到GroupView中，采用默认的布局参数
+		// 如何保证添加到正确的位置呢?? 在PieView中会设置一个轴心点，然后绘制在画布上
 		addView(mPieView);
+		// 旋转一定角度
 		mPieView.rotateTo(mPieRotation);
 
 		// The pointer doesn't need hardware acceleration, but in order to show
-		// up
-		// in front of the pie it also needs to be on a separate view.
+		// up in front of the pie it also needs to be on a separate view.
+		// 绘制指向饼图的文本
 		mPointerView = new PointerView(getContext());
 		addView(mPointerView);
 
@@ -766,14 +800,14 @@ public class PieChart extends ViewGroup {
 		}
 
 		// Create a gesture detector to handle onTouch messages
+		// 手势Detector来处理触摸事件
 		mDetector = new GestureDetector(PieChart.this.getContext(),
 				new GestureListener());
 
 		// Turn off long press--this control doesn't use it, and if long press
-		// is enabled,
-		// you can't scroll for a bit, pause, then scroll some more (the pause
-		// is interpreted
-		// as a long press, apparently)
+		// is enabled, you can't scroll for a bit, pause, then scroll some more
+		// (the pause is interpreted as a long press, apparently)
+		// 长按无效化
 		mDetector.setIsLongpressEnabled(false);
 
 		// In edit mode it's nice to have some demo data, so add that here.
@@ -789,8 +823,11 @@ public class PieChart extends ViewGroup {
 	}
 
 	private void tickScrollAnimation() {
+		// 如果旋转还没结束
 		if (!mScroller.isFinished()) {
+			// 计算坐标
 			mScroller.computeScrollOffset();
+			// 设置旋转角度(以当前Y轴坐标为参数)
 			setPieRotation(mScroller.getCurrY());
 		} else {
 			if (Build.VERSION.SDK_INT >= 11) {
@@ -800,12 +837,19 @@ public class PieChart extends ViewGroup {
 		}
 	}
 
+	/**
+	 * 采用软件渲染
+	 * */
 	private void setLayerToSW(View v) {
 		if (!v.isInEditMode() && Build.VERSION.SDK_INT >= 11) {
+			// 采用软件渲染管道
 			setLayerType(View.LAYER_TYPE_SOFTWARE, null);
 		}
 	}
 
+	/**
+	 * 采用硬件渲染 OpenGL等
+	 * */
 	private void setLayerToHW(View v) {
 		if (!v.isInEditMode() && Build.VERSION.SDK_INT >= 11) {
 			setLayerType(View.LAYER_TYPE_HARDWARE, null);
@@ -816,6 +860,7 @@ public class PieChart extends ViewGroup {
 	 * Force a stop to all pie motion. Called when the user taps during a fling.
 	 */
 	private void stopScrolling() {
+		// 强制结束
 		mScroller.forceFinished(true);
 		if (Build.VERSION.SDK_INT >= 11) {
 			mAutoCenterAnimator.cancel();
@@ -828,6 +873,7 @@ public class PieChart extends ViewGroup {
 	 * Called when the user finishes a scroll action.
 	 */
 	private void onScrollFinished() {
+		// TODO
 		if (mAutoCenterInSlice) {
 			centerOnCurrentItem();
 		} else {
@@ -837,13 +883,19 @@ public class PieChart extends ViewGroup {
 
 	/**
 	 * Kicks off an animation that will result in the pointer being centered in
-	 * the
-	 * pie slice of the currently selected item.
+	 * the pie slice of the currently selected item.
 	 */
 	private void centerOnCurrentItem() {
+
+		/**
+		 * 重新定位当前Item位置
+		 * */
+
 		Item current = mData.get(getCurrentItem());
+		// 目标角度取1/2
 		int targetAngle = current.mStartAngle
 				+ (current.mEndAngle - current.mStartAngle) / 2;
+		// 还需要旋转的角度
 		targetAngle -= mCurrentItemAngle;
 		if (targetAngle < 90 && mPieRotation > 180)
 			targetAngle += 360;
@@ -854,7 +906,7 @@ public class PieChart extends ViewGroup {
 			mAutoCenterAnimator.setDuration(AUTOCENTER_ANIM_DURATION).start();
 		} else {
 			// Dull non-animated version
-			// mPieView.rotateTo(targetAngle);
+			mPieView.rotateTo(targetAngle);
 		}
 	}
 
@@ -864,9 +916,16 @@ public class PieChart extends ViewGroup {
 	 * when necessary.
 	 */
 	private class PieView extends View {
+
+		/**
+		 * 饼图内部类，必要时将饼图画在单独硬件层
+		 * */
+
 		// Used for SDK < 11
 		private float mRotation = 0;
+		/** 用于坐标系转换的3*3矩阵 */
 		private Matrix mTransform = new Matrix();
+		/** 用来定义轴心点 */
 		private PointF mPivot = new PointF();
 
 		/**
@@ -877,6 +936,10 @@ public class PieChart extends ViewGroup {
 		public PieView(Context context) {
 			super(context);
 		}
+
+		/**
+		 * TODO 硬件加速和软件加速的区别??
+		 * */
 
 		/**
 		 * Enable hardware acceleration (consumes memory)
@@ -896,12 +959,14 @@ public class PieChart extends ViewGroup {
 		protected void onDraw(Canvas canvas) {
 			super.onDraw(canvas);
 
+			// TODO 在低版本中都干了什么??
 			if (Build.VERSION.SDK_INT < 11) {
 				mTransform.set(canvas.getMatrix());
 				mTransform.preRotate(mRotation, mPivot.x, mPivot.y);
 				canvas.setMatrix(mTransform);
 			}
 
+			// 对每个Item画出弧度
 			for (Item it : mData) {
 				mPiePaint.setShader(it.mShader);
 				canvas.drawArc(mBounds, 360 - it.mEndAngle, it.mEndAngle
@@ -914,8 +979,12 @@ public class PieChart extends ViewGroup {
 			mBounds = new RectF(0, 0, w, h);
 		}
 
+		/** 用于表示坐标系的四个顶点的矩形 */
 		RectF mBounds;
 
+		/**
+		 * 设置旋转角度
+		 * */
 		public void rotateTo(float pieRotation) {
 			mRotation = pieRotation;
 			if (Build.VERSION.SDK_INT >= 11) {
@@ -925,6 +994,9 @@ public class PieChart extends ViewGroup {
 			}
 		}
 
+		/**
+		 * 设置轴心点
+		 * */
 		public void setPivot(float x, float y) {
 			mPivot.x = x;
 			mPivot.y = y;
@@ -942,6 +1014,8 @@ public class PieChart extends ViewGroup {
 	 */
 	private class PointerView extends View {
 
+		// 用来绘制指向饼图的文本
+
 		/**
 		 * Construct a PointerView object
 		 * 
@@ -953,6 +1027,7 @@ public class PieChart extends ViewGroup {
 
 		@Override
 		protected void onDraw(Canvas canvas) {
+			// 直接画出来
 			canvas.drawLine(mTextX, mPointerY, mPointerX, mPointerY, mTextPaint);
 			canvas.drawCircle(mPointerX, mPointerY, mPointerRadius, mTextPaint);
 		}
@@ -981,6 +1056,11 @@ public class PieChart extends ViewGroup {
 	 */
 	private class GestureListener extends
 			GestureDetector.SimpleOnGestureListener {
+
+		/**
+		 * TODO 用于监听手势
+		 * */
+
 		@Override
 		public boolean onScroll(MotionEvent e1, MotionEvent e2,
 				float distanceX, float distanceY) {
