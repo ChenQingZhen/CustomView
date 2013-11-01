@@ -554,6 +554,8 @@ public class PieChart extends ViewGroup {
 	@Override
 	protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
 
+		// widthMeasureSpec和heightMeasureSpec是在父View中计算出来的
+
 		/**
 		 * 计算长度和宽度
 		 * */
@@ -562,11 +564,11 @@ public class PieChart extends ViewGroup {
 		int minw = getPaddingLeft() + getPaddingRight()
 				+ getSuggestedMinimumWidth();
 
+		// 最小和实际之间取一个最大者
 		int w = Math.max(minw, MeasureSpec.getSize(widthMeasureSpec));
 
 		// Whatever the width ends up being, ask for a height that would let the
-		// pie
-		// get as big as it can
+		// pie get as big as it can
 		int minh = (w - (int) mTextWidth) + getPaddingBottom()
 				+ getPaddingTop();
 		int h = Math.min(MeasureSpec.getSize(heightMeasureSpec), minh);
